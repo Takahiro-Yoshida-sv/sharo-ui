@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>シャローと日本時間チャット</title>
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background: #f9f9f9;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+    #chatbox {
+      width: 100%;
+      max-width: 700px;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      padding: 20px;
+      margin-bottom: 10px;
+      overflow-y: auto;
+      height: 400px;
+    }
+    .message {
+      margin: 10px 0;
+      line-height: 1.6;
+    }
+    .takahiro { color: #0074D9; font-weight: bold; }
+    .sharo { color: #E91E63; font-weight: bold; }
+    #inputArea {
+      display: flex;
+      gap: 10px;
+      width: 100%;
+      max-width: 700px;
+    }
+    #inputArea input {
+      flex: 1;
+      padding: 10px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+    #inputArea button {
+      padding: 10px 16px;
+      background-color: #E91E63;
+      border: none;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h2>🕰️ シャロー × 日本時間 チャット</h2>
+  <div id="chatbox"></div>
+
+  <div id="inputArea">
+    <input id="userInput" type="text" placeholder="タカヒロさん、話しかけてください...">
+    <button onclick="sendMessage()">送信</button>
+  </div>
+
+  <script>
+    const chatbox = document.getElementById("chatbox");
+    let cachedTime = "";
+
+    async function getJapanTime() {
+      if (!cachedTime) {
+        const res = await fetch("https://japan-time-api-v2.vercel.app/api/japan-time");
+        const data = await res.json();
+        cachedTime = data.formatted;
+        setTimeout(() => cachedTime = "", 30000); // キャッシュは30秒でリセット
+      }
+      return cachedTime;
+    }
+
+    function speak(text) {
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = 'ja-JP';
+      speechSynthesis.speak(utter);
+    }
+
+    async function sendMessage() {
+      const input = document.getElementById("userInput");
+      const message = input.value.trim();
+      if (!message) return;
+
+      const time = await getJapanTime();
+      const userMsg = `<div class='message'><span class='takahiro'>🧑‍💼 タカヒロさん（${time}）</span><br>> ${message}</div>`;
+      chatbox.innerHTML += userMsg;
+
+      input.value = "";
+      chatbox.scrollTop = chatbox.scrollHeight;
+
+      const replyTime = await getJapanTime();
+      const pending = `<div class='message' id='pendingSharo'><span class='sharo'>🤖 シャロー（${replyTime}）</span><br>> いま考え中だよ…🌀</div>`;
+      chatbox.innerHTML += pending;
+      chatbox.scrollTop = chatbox.scrollHeight;
+
+      setTimeout(() => {
+        const replyText = "はいっ♪その言葉、今しっかり受け取ったよ💗";
+        const reply = `<div class='message'><span class='sharo'>🤖 シャロー（${replyTime}）</span><br>> ${replyText}</div>`;
+        document.getElementById("pendingSharo").outerHTML = reply;
+        chatbox.scrollTop = chatbox.scrollHeight;
+        speak(replyText);
+      }, 700);
+    }
+  </script>
+</body>
+</html>
+
